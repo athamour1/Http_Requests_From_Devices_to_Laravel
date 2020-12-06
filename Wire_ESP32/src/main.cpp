@@ -2,12 +2,15 @@
 #include <WiFi.h>
 #include <SimpleDHT.h>
 #include <HTTPClient.h>
-#include <Arduino_JSON.h>
+#include <ArduinoJson.h>
 
-const char *ssid = ""; //REPLACE_WITH_YOUR_SSID
+const char *ssid = "Thanos's WLAN";   //REPLACE_WITH_YOUR_SSID
 const char *password = "thanos@1998"; //REPLACE_WITH_YOUR_PASSWORD
 
-String serverName = "http://192.168.1.106:1880/update-sensor";
+String token = "1qjdZulxzWWLkpeo";
+String serverName = "https://api.iot-dashboard-thesis.space/api/metrics/";
+
+String postMessage;
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
@@ -65,41 +68,34 @@ void loop()
 
   // DHT11 sampling rate is 0.5HZ.
 
-  //Send an HTTP POST request every 10 minutes
-  if ((millis() - lastTime) > timerDelay)
+  if ((WiFi.status() == WL_CONNECTED))
   {
-    //Check WiFi connection status
-    if (WiFi.status() == WL_CONNECTED)
+    HTTPClient http;
+
+    http.begin(serverName + token);
+    http.addHeader("Content-Type", "application/json");
+
+    const size_t CAPACITY = JSON_OBJECT_SIZE(2);
+    StaticJsonDocument<CAPACITY> doc;
+
+    // λειπει το json
+
+    serializeJsonPretty(doc, postMessage);
+    serializeJsonPretty(doc, Serial);
+
+    http.begin(serverName + token);
+    http.addHeader("Content-Type", "application/json");
+    int httpCode = http.POST(postMessage);
+    if (httpCode > 0)
     {
-      HTTPClient http;
-
-      String serverPath = serverName + temperature;
-
-      // Your Domain name with URL path or IP address with path
-      http.begin(serverPath.c_str());
-
-      // Send HTTP GET request
-      int httpResponseCode = http.GET();
-
-      if (httpResponseCode > 0)
+      Serial.println();
+      Serial.println(httpCode);
+      if (httpCode == 200)
       {
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-        String payload = http.getString();
-        Serial.println(payload);
+        Serial.println("Hooray!");
       }
-      else
-      {
-        Serial.print("Error code: ");
-        Serial.println(httpResponseCode);
-      }
-      // Free resources
-      http.end();
     }
-    else
-    {
-      Serial.println("WiFi Disconnected");
-    }
-    lastTime = millis();
   }
+
+  delay(2500);
 }
