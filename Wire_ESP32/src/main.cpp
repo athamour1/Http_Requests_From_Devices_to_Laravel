@@ -4,13 +4,12 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+
 const char *ssid = "Thanos's WLAN";   //REPLACE_WITH_YOUR_SSID
 const char *password = "thanos@1998"; //REPLACE_WITH_YOUR_PASSWORD
 
-String token = "1qjdZulxzWWLkpeo";
+String token = "bRPiqP7vWu9XuEHK";
 String serverName = "https://api.iot-dashboard-thesis.space/api/metrics/";
-
-String postMessage;
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
@@ -21,6 +20,43 @@ unsigned long timerDelay = 5000;
 //      DATA: 2
 int pinDHT11 = 4;
 SimpleDHT11 dht11(pinDHT11);
+
+void jsonninator(float temperature, float humidity) {
+
+  String postMessage;
+
+  HTTPClient http;
+
+    http.begin(serverName + token);
+    http.addHeader("Content-Type", "application/json");
+
+    const size_t CAPACITY = JSON_OBJECT_SIZE(1);
+
+    StaticJsonDocument<200> doc;
+
+    JsonObject obj = doc.createNestedObject("values");
+    obj["temperature"] = temperature;
+    obj["humidity"] = humidity;
+
+    serializeJsonPretty(doc, postMessage);
+
+    // serializeJson(doc, Serial);
+
+    int httpCode = http.POST(postMessage);
+
+    Serial.println(postMessage);
+
+    if (httpCode > 0)
+    {
+      Serial.println();
+      Serial.println(httpCode);
+      if (httpCode == 201)
+      {
+        Serial.println("Hooray!");
+      }
+    }
+
+}
 
 void setup()
 {
@@ -70,32 +106,9 @@ void loop()
 
   if ((WiFi.status() == WL_CONNECTED))
   {
-    HTTPClient http;
+    
+    jsonninator(temperature,humidity);
 
-    http.begin(serverName + token);
-    http.addHeader("Content-Type", "application/json");
-
-    const size_t CAPACITY = JSON_OBJECT_SIZE(2);
-    StaticJsonDocument<CAPACITY> doc;
-
-    // λειπει το json
-
-    serializeJsonPretty(doc, postMessage);
-    serializeJsonPretty(doc, Serial);
-
-    http.begin(serverName + token);
-    http.addHeader("Content-Type", "application/json");
-    int httpCode = http.POST(postMessage);
-    if (httpCode > 0)
-    {
-      Serial.println();
-      Serial.println(httpCode);
-      if (httpCode == 200)
-      {
-        Serial.println("Hooray!");
-      }
-    }
   }
-
   delay(2500);
 }
